@@ -1,25 +1,29 @@
 /*-----------------------------------------------------------------------------
-This template demonstrates how to use an IntentDialog with a LuisRecognizer to add 
-natural language support to a bot. 
+This template demonstrates how to use an IntentDialog with a LuisRecognizer to add
+natural language support to a bot.
 For a complete walkthrough of creating this type of bot see the article at
 https://aka.ms/abs-node-luis
 -----------------------------------------------------------------------------*/
 const builder = require("botbuilder");
 const botbuilder_azure = require("botbuilder-azure");
 const path = require('path');
+const api = require('./gameon-api');
 
 const useEmulator = (process.env.NODE_ENV == 'development');
 
 const connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
-    appId: process.env['MicrosoftAppId'],
-    appPassword: process.env['MicrosoftAppPassword'],
-    stateEndpoint: process.env['BotStateEndpoint'],
-    openIdMetadata: process.env['BotOpenIdMetadata']
+  appId: process.env['MicrosoftAppId'],
+  appPassword: process.env['MicrosoftAppPassword'],
+  stateEndpoint: process.env['BotStateEndpoint'],
+  openIdMetadata: process.env['BotOpenIdMetadata']
 });
 
-const bot = new builder.UniversalBot(connector, { persistConversationData: true });
+const bot = new builder.UniversalBot(connector, {persistConversationData: true});
 bot.localePath(path.join(__dirname, './locale'));
 bot.use(builder.Middleware.sendTyping());
+
+// GameOn API
+const NFLPlayers = api.getPlayers();
 
 // Make sure you add code to validate these fields
 const luisAppId = process.env.LuisAppId;
@@ -40,17 +44,25 @@ bot.dialog('/', intents);
 bot.dialog('/fantasypoints', [
   (session) => {
     session.send('So you want fantasy points?');
-    session.endDialog();
+    session.Prompts.text(session, `Which player do you want fantasy points for?`);
+  },
+  (session, args, next) => {
+    session.send(`You selected ${args.response}`);
+    if(NFLPlayers[args.response]) {
+      session.send(`Found player`);
+    } else {
+      session.send(`Unable to find player`);
+    }
   }
 ]);
 
 if (useEmulator) {
-    const restify = require('restify');
-    const server = restify.createServer();
-    server.listen(3978, function() {
-        console.log('test bot endpont at http://localhost:3978/api/messages');
-    });
-    server.post('/api/messages', connector.listen());    
+  const restify = require('restify');
+  const server = restify.createServer();
+  server.listen(3978, function () {
+    console.log('test bot endpont at http://localhost:3978/api/messages');
+  });
+  server.post('/api/messages', connector.listen());
 } else {
-    module.exports = { default: connector.listen() }
+  module.exports = {default: connector.listen()}
 }
