@@ -1,0 +1,9 @@
+# IntelliJ
+.idea
+gameon-bot.iml
+
+# Bot Stuff
+**/*/node_modules/
+typings/
+node_modules/
+*.js.map
