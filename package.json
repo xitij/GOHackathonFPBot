@@ -3,6 +3,7 @@
   "lockfileVersion": 1,
   "dependencies": {
     "bluebird": "^3.5.1",
+    "botbuilder-cognitiveservices": "^1.1.0",
     "lodash": {
       "integrity": "sha1-eCA6TRwyiuHYbcpkYONptX9AVa4=",
       "resolved": "https://registry.npmjs.org/lodash/-/lodash-4.17.4.tgz",
