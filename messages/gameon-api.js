@@ -20,30 +20,44 @@ function getTeams() {
   });
 }
 
-function getPlayers() {
+function getPlayers(team) {
+  return get({
+    path: `/teams/${team.id}/players`,
+  });
+}
+
+function getPlayerStats(options) {
+  return get({
+    path: `/players/${options.playerId}/gamestats`,
+    qs: options.params,
+    qsStringifyOptions: {
+      encode: false
+    }
+  })
+}
+
+function fetchPlayers() {
   return getTeams().then((teams) => {
     const NFLPlayers = {};
     return Promise.map(teams, (team) => {
-      return get({
-        path: `/teams/${team.id}/players`,
-      }).then(teamPlayers => {
+      return getPlayers(team).then(teamPlayers => {
         teamPlayers.forEach(player => {
-          NFLPlayers[player.name] = player;
+          NFLPlayers[player.name.toLowerCase()] = player;
         });
       }).catch(err => {
         console.log(`Error getting Players`);
       });
-    }).then((data) => (NFLPlayers));
+    }).then((data) => {
+      console.log(`Finished getting NFL players`);
+      return NFLPlayers;
+    });
   }).catch(err => {
     console.log(`err: ${err}`);
     console.log(`Error getting teams`);
   });
 }
 
-function getPlayerStats(options) {
-
-}
-
 module.exports = {
-  getPlayers
+  getPlayers: fetchPlayers,
+  getPlayerStats
 };
