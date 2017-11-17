@@ -6,8 +6,11 @@ https://aka.ms/abs-node-luis
 -----------------------------------------------------------------------------*/
 const builder = require("botbuilder");
 const botbuilder_azure = require("botbuilder-azure");
+const builder_cognitiveservices = require("botbuilder-cognitiveservices");
+const rp = require('request-promise');
 const path = require('path');
 const api = require('./gameon-api');
+const FAQ_URL = `https://westus.api.cognitive.microsoft.com/qnamaker/v2.0/knowledgebases/e97f03bb-65cc-4e2e-9cf8-396435335ba9/generateAnswer`;
 
 const useEmulator = (process.env.NODE_ENV == 'development');
 
@@ -70,13 +73,26 @@ api.getPlayers().then((NFLPlayers) => {
   bot.localePath(path.join(__dirname, './locale'));
   bot.use(builder.Middleware.sendTyping());
 
+  // QA Recognizer
+  const QARecognizer = new builder_cognitiveservices.QnAMakerRecognizer({
+    knowledgeBaseId: 'e97f03bb-65cc-4e2e-9cf8-396435335ba9',
+    subscriptionKey: '595cc3ee0fc44e779975c7e60fc688d0'
+  });
+
+  const basicQnAMakerDialog = new builder_cognitiveservices.QnAMakerDialog({
+    recognizers: [QARecognizer],
+    defaultMessage: `Sorry I couldn't find a match! Try another question!`,
+    qnaThreshold: 0.3
+  });
+
   // Main dialog with LUIS
   const recognizer = new builder.LuisRecognizer(LuisModelUrl);
   const intents = new builder.IntentDialog({recognizers: [recognizer]})
     .onDefault((session) => {
       session.send(`I'm a simple fantasy bot. All I know is crunching fantasy points. Ask me for fantasy points`);
     })
-    .matches('FantasyPoints', '/fantasypoints');
+    .matches('FantasyPoints', '/fantasypoints')
+    .matches('FAQs', '/faqs');
 
   bot.dialog('/', intents);
   bot.dialog('/fantasypoints', [
@@ -108,6 +124,16 @@ api.getPlayers().then((NFLPlayers) => {
       }
     }
   ]);
+  bot.dialog('/faqs', [
+    (session) => {
+      builder.Prompts.text(session, `I can answer some FAQs, hit me with it...`);
+    },
+    (session, args) => {
+      const question = args.response;
+      session.replaceDialog('/QABot', { question });
+    }
+  ]);
+  bot.dialog('/QABot', basicQnAMakerDialog);
 });
 
 if (useEmulator) {
